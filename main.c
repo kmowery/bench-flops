@@ -17,7 +17,7 @@ int main() {
   double f1, f2, f3;
 
 #ifdef SSE
-  // flush denorms to zero
+  // flush SSE denorms to zero
   _MM_SET_FLUSH_ZERO_MODE (_MM_FLUSH_ZERO_ON);
 #endif
 
@@ -41,6 +41,32 @@ int main() {
   printf("%.12g\n", f3);
   // will print the byte of the double, with a compiler error
   //printf("f3:   0x%016" PRIX64 "\n", f3);
+
+  uint32_t diff;
+  double result = 2;
+
+  __asm volatile(
+      "rdtsc;\n"
+      "mov %%esi, %%eax;\n"
+
+      //"fld qword ptr[rbx];"
+      "fldl (%%ebx);\n"
+
+      "fldpi;\n"
+      "fmul %%st(1);\n"
+
+      "fstl (%%ebx);\n"
+
+      "rdtsc;\n"
+      "sub %%eax, %%esi;\n"
+
+    : "=a" (diff) //, "=b" (result)
+    : "b" (&result)
+    : "%esi" );
+
+  //printf("diff: 0x%" PRIX64 "\n", diff);
+  printf("%.12g\n", result);
+
 
   return 0;
 }

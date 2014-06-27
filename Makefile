@@ -1,5 +1,5 @@
 #CFLAGS=-Wall -Wextra -msse2 -mfpmath=sse -DSSE
-CFLAGS=-Wall -Wextra
+CFLAGS=-Wall -Wextra -O0 -mfpmath=387 -mno-sse -m32
 OBJS = main.o
 TARGET = bench-flops
 
