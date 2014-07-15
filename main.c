@@ -7,6 +7,9 @@
 #include <xmmintrin.h>
 #endif
 
+#define TIME_BEGIN "rdtsc;\nmov%%rax, %%rsi\n"
+#define TIME_END "rdtsc;\nsub %%esi, %%eax\n"
+
 union conv {
   uint64_t x;
   double f;
@@ -46,26 +49,26 @@ int main() {
   double result = 2;
 
   __asm volatile(
-      "rdtsc;\n"
-      "mov %%esi, %%eax;\n"
 
-      //"fld qword ptr[rbx];"
-      "fldl (%%ebx);\n"
 
+      "fldl (%%rbx);\n"
+
+      TIME_BEGIN
       "fldpi;\n"
+
+      TIME_END
+
       "fmul %%st(1);\n"
 
-      "fstl (%%ebx);\n"
-
-      "rdtsc;\n"
-      "sub %%eax, %%esi;\n"
+      "fstl (%%rbx);\n"
 
     : "=a" (diff) //, "=b" (result)
     : "b" (&result)
     : "%esi" );
 
-  //printf("diff: 0x%" PRIX64 "\n", diff);
+  printf("diff: 0x%x\n", diff);
   printf("%.12g\n", result);
+  printf("%.12g\n", 1.2);
 
 
   return 0;
