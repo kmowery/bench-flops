@@ -2,7 +2,7 @@ CC=gcc
 
 #CFLAGS=-Wall -Wextra -msse2 -mfpmath=sse -DSSE
 #CFLAGS=-Wall -Wextra -O0 -mfpmath=387 -mno-sse
-CFLAGS=-Wall -Wextra -O0
+CFLAGS=-Wall -Wextra -O0 -std=c99
 OBJS = main.o
 TARGET = bench-flops
 
