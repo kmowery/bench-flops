@@ -14,19 +14,52 @@
 
 #define DEF_TESTS(TESTNAME) int32_t TESTNAME##_tests[NUM_TESTS];
 int32_t tests[NUM_TESTS];
+double test_results[NUM_TESTS];
 
-#define TEST(TESTNAME, SETUP, ASM) __asm volatile( SETUP TIME_BEGIN ASM TIME_END : "=a" (tests[i]) : "b" (&result) : "%rax", "%rcx", "%rdx", "%rsi", "memory");
+double result = 0;
+double input2 = 0;
+
+/* Here is the register setup:
+ *   rbx - pointer to first double argument
+ *   edi - pointer to second double argument
+ *
+ * The result should be put into the location pointed to by rbx.
+ */
+
+#define TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
+  result = INPUT1; \
+  input2 = INPUT2; \
+  __asm volatile( \
+    SETUP \
+    TIME_BEGIN \
+    ASM \
+    TIME_END \
+    EPILOGUE \
+    : "=a" (tests[i]) \
+    : "b" (&result), "D" (&input2) \
+    : "%rax", "%rcx", "%rdx", "%rsi", "memory");
+
 #define REPEAT_TEST for(int i = 0; i < NUM_TESTS; i++)
-#define PRINT_TEST_RESULTS(TESTNAME) printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", tests[i] ); } printf("]\n");
+#define PRINT_TEST_RESULTS(TESTNAME) \
+  printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", tests[i] ); } printf("]\n"); \
 
-#define DO_TEST(TESTNAME, SETUP, ASM) \
+#define DO_TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
   REPEAT_TEST { \
-    TEST(TESTNAME, SETUP, ASM); \
+    TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE); \
+    test_results[i] = result; \
   }
+#define DO_TEST1(TESTNAME, INPUT1, SETUP, ASM, EPILOGUE) \
+  DO_TEST(TESTNAME, INPUT1, 0, SETUP, ASM, EPILOGUE)
+#define DO_TEST0(TESTNAME, SETUP, ASM, EPILOGUE) \
+  DO_TEST(TESTNAME, 0, 0, SETUP, ASM, EPILOGUE)
 
-#define DO_TEST_PRINT(TESTNAME, SETUP, ASM) \
-  DO_TEST(TESTNAME, SETUP, ASM) \
+#define DO_TEST_PRINT(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
+  DO_TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
   PRINT_TEST_RESULTS(TESTNAME);
+#define DO_TEST_PRINT1(TESTNAME, INPUT1, SETUP, ASM, EPILOGUE) \
+  DO_TEST_PRINT(TESTNAME, INPUT1, 0, SETUP, ASM, EPILOGUE);
+#define DO_TEST_PRINT0(TESTNAME, SETUP, ASM, EPILOGUE) \
+  DO_TEST_PRINT(TESTNAME, 0,0, SETUP, ASM, EPILOGUE);
 
 union conv {
   uint64_t x;
@@ -77,9 +110,37 @@ int main() {
     b = a;
   }
 
-  double result = 0;
 
-  DO_TEST_PRINT(noop, "", "");
+  DO_TEST_PRINT0(noop_cold, "", "", "");
+
+  for(int j = 0; j < 300000; j++) {
+    DO_TEST0(noop, "", "", "");
+  }
+
+  DO_TEST_PRINT0(noop_warmish, "", "", "");
+
+  DO_TEST_PRINT(pi_multiply,
+      2, 0,
+      "fldl (%%rbx);\n"
+      "fldpi;\n"
+      ,
+      "fmul %%st(1);\n"
+      ,
+      /* fcomp is the easiest way to pop an item from the stack */
+      "fstpl (%%rbx);\n"
+      "fcomp;\n"
+      );
+
+  DO_TEST_PRINT(integer_multiply,
+      2, 4,
+      "fldl (%%rbx);\n"
+      "fldl (%%rdi);\n"
+      ,
+      "fmul %%st(1);\n"
+      ,
+      "fstpl (%%rbx);\n"
+      "fcomp;\n"
+      );
 
   //__asm volatile(
   //    "fldl (%%rbx);\n"
