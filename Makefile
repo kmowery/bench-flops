@@ -13,6 +13,7 @@ bench-flops: ${OBJS}
 	gcc $(CFLAGS) -m32 -g -o bench-flops32 ${OBJS}
 
 %.o: %.c
+	gcc $(CFLAGS) -E -g $< -o $<.pre
 	gcc $(CFLAGS) -c -g $< -o $@
 
 clean:
