@@ -7,21 +7,25 @@
 #include <xmmintrin.h>
 #endif
 
-#define TIME_BEGIN "rdtscp; rdtsc;\nmov%%rax, %%rsi\n"
-#define TIME_END "rdtscp; rdtsc;\nsub %%esi, %%eax\n"
+#define TIME_BEGIN "rdtscp; \nmov%%rax, %%rsi\n"
+#define TIME_END "rdtscp; \nsub %%esi, %%eax\n"
 
 #define NUM_TESTS 40
-#define DEF_TESTS(TESTNAME) int32_t TESTNAME##_tests[NUM_TESTS];
 
-#define TEST(TESTNAME, SETUP, ASM) __asm volatile( SETUP TIME_BEGIN ASM TIME_END : "=a" (TESTNAME##_tests[i]) : "b" (&result) : "%esi", "memory");
+#define DEF_TESTS(TESTNAME) int32_t TESTNAME##_tests[NUM_TESTS];
+int32_t tests[NUM_TESTS];
+
+#define TEST(TESTNAME, SETUP, ASM) __asm volatile( SETUP TIME_BEGIN ASM TIME_END : "=a" (tests[i]) : "b" (&result) : "%eax", "%ecx", "%edx", "%esi", "memory");
 #define REPEAT_TEST for(int i = 0; i < NUM_TESTS; i++)
-#define PRINT_TEST_RESULTS(TESTNAME) printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", TESTNAME##_tests[i] ); } printf("]\n");
+#define PRINT_TEST_RESULTS(TESTNAME) printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", tests[i] ); } printf("]\n");
 
 #define DO_TEST(TESTNAME, SETUP, ASM) \
-  DEF_TESTS(TESTNAME); \
   REPEAT_TEST { \
     TEST(TESTNAME, SETUP, ASM); \
-  } \
+  }
+
+#define DO_TEST_PRINT(TESTNAME, SETUP, ASM) \
+  DO_TEST(TESTNAME, SETUP, ASM) \
   PRINT_TEST_RESULTS(TESTNAME);
 
 union conv {
@@ -75,7 +79,7 @@ int main() {
 
   double result = 0;
 
-  DO_TEST(noop, "", "");
+  DO_TEST_PRINT(noop, "", "");
 
   //__asm volatile(
   //    "fldl (%%rbx);\n"
