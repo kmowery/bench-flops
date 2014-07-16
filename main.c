@@ -7,8 +7,22 @@
 #include <xmmintrin.h>
 #endif
 
-#define TIME_BEGIN "rdtsc;\nmov%%rax, %%rsi\n"
-#define TIME_END "rdtsc;\nsub %%esi, %%eax\n"
+#define TIME_BEGIN "rdtscp; rdtsc;\nmov%%rax, %%rsi\n"
+#define TIME_END "rdtscp; rdtsc;\nsub %%esi, %%eax\n"
+
+#define NUM_TESTS 40
+#define DEF_TESTS(TESTNAME) int32_t TESTNAME##_tests[NUM_TESTS];
+
+#define TEST(TESTNAME, SETUP, ASM) __asm volatile( SETUP TIME_BEGIN ASM TIME_END : "=a" (TESTNAME##_tests[i]) : "b" (&result) : "%esi", "memory");
+#define REPEAT_TEST for(int i = 0; i < NUM_TESTS; i++)
+#define PRINT_TEST_RESULTS(TESTNAME) printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", TESTNAME##_tests[i] ); } printf("]\n");
+
+#define DO_TEST(TESTNAME, SETUP, ASM) \
+  DEF_TESTS(TESTNAME); \
+  REPEAT_TEST { \
+    TEST(TESTNAME, SETUP, ASM); \
+  } \
+  PRINT_TEST_RESULTS(TESTNAME);
 
 union conv {
   uint64_t x;
@@ -16,59 +30,72 @@ union conv {
 };
 
 int main() {
-  union conv c;
-  double f1, f2, f3;
 
 #ifdef SSE
   // flush SSE denorms to zero
   _MM_SET_FLUSH_ZERO_MODE (_MM_FLUSH_ZERO_ON);
 #endif
 
-  printf("len uint64: %lu\n", sizeof(c.x));
-  printf("len dbl:    %lu\n", sizeof(c.f));
+  //union conv c;
+  //double f1, f2, f3;
 
-  c.f = atof("1e-310");
+  //printf("len uint64: %lu\n", sizeof(c.x));
+  //printf("len dbl:    %lu\n", sizeof(c.f));
 
-  printf("int:   0x%016" PRIX64 "\n", c.x);
-  printf("float: %f\n", c.f);
-  printf("caml:  %.12g\n", c.f);
+  //c.f = atof("1e-310");
+
+  //printf("int:   0x%016" PRIX64 "\n", c.x);
+  //printf("float: %f\n", c.f);
+  //printf("caml:  %.12g\n", c.f);
 
 
-  f1 = c.f+0;
-  f2 = c.f*1;
+  //f1 = c.f+0;
+  //f2 = c.f*1;
 
-  f3 = f1 + f2;
+  //f3 = f1 + f2;
 
-  printf("%.12g\n", f1);
-  printf("%.12g\n", f2);
-  printf("%.12g\n", f3);
+  //printf("%.12g\n", f1);
+  //printf("%.12g\n", f2);
+  //printf("%.12g\n", f3);
   // will print the byte of the double, with a compiler error
   //printf("f3:   0x%016" PRIX64 "\n", f3);
-
-  uint32_t diff;
-  double result = 2;
-
-  __asm volatile(
+  //
+  //
+  //
 
 
-      "fldl (%%rbx);\n"
+  // WARM UP PROCESSOR, seems to reduce rdtsc variability
+  int a = 0,b = 1,c = 1;
 
-      TIME_BEGIN
-      "fldpi;\n"
+  for(int i = 0; i < 300000; i++) {
+    a = b + c;
+    c = b;
+    b = a;
+  }
 
-      TIME_END
+  double result = 0;
 
-      "fmul %%st(1);\n"
+  DO_TEST(noop, "", "");
 
-      "fstl (%%rbx);\n"
+  //__asm volatile(
+  //    "fldl (%%rbx);\n"
 
-    : "=a" (diff) //, "=b" (result)
-    : "b" (&result)
-    : "%esi" );
+  //    "fldpi;\n"
 
-  printf("diff: 0x%x\n", diff);
-  printf("%.12g\n", result);
-  printf("%.12g\n", 1.2);
+
+  //    TIME_BEGIN
+  //    "fmul %%st(1);\n"
+  //    TIME_END
+
+  //    "fstl (%%rbx);\n"
+
+  //  : "=a" (diff) //, "=b" (result)
+  //  : "b" (&result)
+  //  : "%esi", "memory" );
+
+  //printf("diff: 0x%x\n", diff);
+  //printf("%.12g\n", result);
+  //printf("%.12g\n", 1.2);
 
 
   return 0;
