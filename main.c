@@ -15,7 +15,7 @@
 #define DEF_TESTS(TESTNAME) int32_t TESTNAME##_tests[NUM_TESTS];
 int32_t tests[NUM_TESTS];
 
-#define TEST(TESTNAME, SETUP, ASM) __asm volatile( SETUP TIME_BEGIN ASM TIME_END : "=a" (tests[i]) : "b" (&result) : "%eax", "%ecx", "%edx", "%esi", "memory");
+#define TEST(TESTNAME, SETUP, ASM) __asm volatile( SETUP TIME_BEGIN ASM TIME_END : "=a" (tests[i]) : "b" (&result) : "%rax", "%rcx", "%rdx", "%rsi", "memory");
 #define REPEAT_TEST for(int i = 0; i < NUM_TESTS; i++)
 #define PRINT_TEST_RESULTS(TESTNAME) printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", tests[i] ); } printf("]\n");
 
