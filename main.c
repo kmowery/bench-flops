@@ -39,14 +39,14 @@ double input2 = 0;
     : "b" (&result), "D" (&input2) \
     : "%rax", "%rcx", "%rdx", "%rsi", "memory");
 
-#define REPEAT_TEST for(int i = 0; i < NUM_TESTS; i++)
+#define REPEAT_TEST for(int i = -1; i < NUM_TESTS; i++)
 #define PRINT_TEST_RESULTS(TESTNAME) \
   printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", tests[i] ); } printf("]\n"); \
 
 #define DO_TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
   REPEAT_TEST { \
     TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE); \
-    test_results[i] = result; \
+    if (i >= 0) { test_results[i] = result; } \
   }
 #define DO_TEST1(TESTNAME, INPUT1, SETUP, ASM, EPILOGUE) \
   DO_TEST(TESTNAME, INPUT1, 0, SETUP, ASM, EPILOGUE)
