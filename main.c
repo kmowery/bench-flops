@@ -7,6 +7,14 @@
 #include <xmmintrin.h>
 #endif
 
+#define DUP1(X) X
+#define DUP2(X) X X
+#define DUP3(X) DUP1(X) DUP2(X)
+#define DUP4(X) DUP2(X) DUP2(X)
+#define DUP5(X) DUP3(X) DUP2(X)
+#define DUP6(X) DUP3(X) DUP3(X)
+#define DUP7(X) DUP4(X) DUP3(X)
+
 #define TIME_BEGIN "rdtscp; \nmov%%rax, %%rsi\n"
 #define TIME_END "rdtscp; \nsub %%esi, %%eax\n"
 
@@ -37,11 +45,17 @@ double input2 = 0;
     EPILOGUE \
     : "=a" (tests[i]) \
     : "b" (&result), "D" (&input2) \
-    : "%rax", "%rcx", "%rdx", "%rsi", "memory");
+    : "%rax", "%rcx", "%rdx", "%rsi", "memory" );
 
 #define REPEAT_TEST for(int i = -1; i < NUM_TESTS; i++)
+
+#if 0
 #define PRINT_TEST_RESULTS(TESTNAME) \
-  printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { printf("%d, ", tests[i] ); } printf("]\n"); \
+{ int s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d, ", tests[i]); } printf("] sum: %d\n", s); }
+#else
+#define PRINT_TEST_RESULTS(TESTNAME) \
+{ int s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d (%.12g), ", tests[i], test_results[i]); } printf("] sum: %d\n", s); }
+#endif
 
 #define DO_TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
   REPEAT_TEST { \
@@ -111,7 +125,7 @@ int main() {
   }
 
 
-  DO_TEST_PRINT0(noop_cold, "", "", "");
+  DO_TEST0(noop_cold, "", "", "");
 
   for(int j = 0; j < 300000; j++) {
     DO_TEST0(noop, "", "", "");
@@ -119,20 +133,58 @@ int main() {
 
   DO_TEST_PRINT0(noop_warmish, "", "", "");
 
-  DO_TEST_PRINT(pi_multiply,
-      2, 0,
-      "fldl (%%rbx);\n"
+  #define fcomp7 DUP7("fcomp;\n")
+
+  DO_TEST_PRINT1(pi_multiply,
+      1e-310,
       "fldpi;\n"
+      "fldl (%%rbx);\n"
       ,
-      "fmul %%st(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+
+      "fmul %%ST(0), %%ST(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+      "fmul %%ST(0), %%ST(1);\n"
+
+
       ,
       /* fcomp is the easiest way to pop an item from the stack */
-      "fstpl (%%rbx);\n"
+      "fcomp;\n"
+      "fstl (%%rbx);\n"
       "fcomp;\n"
       );
 
-  DO_TEST_PRINT(integer_multiply,
+#define DO_MUL_PI(NAME, NUM) \
+  DO_TEST_PRINT1(pi_multiply_##NAME, \
+      NUM, \
+      "fldpi;\n" \
+      "fldl (%%rbx);\n" \
+      , \
+      "fmul %%ST(0), %%ST(1);\n" \
+      , \
+      /* fcomp is the easiest way to pop an item from the stack */ \
+      "fcomp;\n" \
+      "fstl (%%rbx);\n" \
+      "fcomp;\n" \
+      );
+
+  DO_MUL_PI(2, 2);
+  DO_MUL_PI(3, 3);
+  DO_MUL_PI(denorm, 1e-310);
+
+  /*DO_TEST_PRINT(integer_multiply,
       2, 4,
+      "fldl (%%rbx);\n"
+      "fldl (%%rbx);\n"
+      "fldl (%%rbx);\n"
+      "fldl (%%rbx);\n"
+      "fldl (%%rbx);\n"
+      "fldl (%%rbx);\n"
+      "fldl (%%rbx);\n"
       "fldl (%%rbx);\n"
       "fldl (%%rdi);\n"
       ,
@@ -141,6 +193,7 @@ int main() {
       "fstpl (%%rbx);\n"
       "fcomp;\n"
       );
+      */
 
   //__asm volatile(
   //    "fldl (%%rbx);\n"
