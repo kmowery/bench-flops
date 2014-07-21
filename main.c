@@ -19,6 +19,7 @@
 #define TIME_END "rdtscp; \nsub %%esi, %%eax\n"
 
 #define NUM_TESTS 40
+#define LOOP_ITERATIONS 100000
 
 #define DEF_TESTS(TESTNAME) int32_t TESTNAME##_tests[NUM_TESTS];
 int32_t tests[NUM_TESTS];
@@ -51,11 +52,13 @@ double input2 = 0;
 
 #if 0
 #define PRINT_TEST_RESULTS(TESTNAME) \
-{ int s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d, ", tests[i]); } printf("] sum: %d\n", s); }
+{ uint64_t s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d, ", tests[i]); } printf("] sum: %ull\n", s); }
 #else
 #define PRINT_TEST_RESULTS(TESTNAME) \
-{ int s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d (%.12g), ", tests[i], test_results[i]); } printf("] sum: %d\n", s); }
+{ uint64_t s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d (%.12g), ", tests[i], test_results[i]); } printf("] sum: %" PRIu64 "\n", s); }
 #endif
+#define PRINT_SUMMARY(TESTNAME) \
+{ uint64_t s = 0; printf("" #TESTNAME ": "); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; } printf(" sum: %" PRIu64 "\n", s); }
 
 #define DO_TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
   REPEAT_TEST { \
@@ -172,9 +175,128 @@ int main() {
       "fcomp;\n" \
       );
 
-  DO_MUL_PI(2, 2);
-  DO_MUL_PI(3, 3);
-  DO_MUL_PI(denorm, 1e-310);
+  //DO_MUL_PI(2, 2);
+  //DO_MUL_PI(3, 3);
+  //DO_MUL_PI(denorm, 1e-310);
+
+  /* LOOP_INTERNAL should:
+   *   operate on ST(0) and ST(1)
+   *   not change the stack size
+   *   not touch $rax
+   */
+#define TEST_INTERNAL_LOOP(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
+  TEST(TESTNAME##_rep, INPUT1, INPUT2, SETUP, \
+      "mov $" #LOOP_ITER ", %%rax;\n" \
+      "jmp loop%=;" \
+      \
+      "top%=:" \
+      "fcomp;\n" \
+      "fcomp;\n" \
+      \
+      "loop%=:" \
+      "fld %%ST(1);\n" \
+      "fld %%ST(1);\n" \
+      LOOP_INTERNAL \
+      "dec %%rax;\n" \
+      "jnz top%=;\n" \
+      , \
+      EPILOGUE \
+      "fcomp;\n" \
+      "fcomp;\n" \
+      );
+#define DO_LOOP_TEST(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
+  REPEAT_TEST { \
+    TEST_INTERNAL_LOOP(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE); \
+    if (i >= 0) { test_results[i] = result; } \
+  }
+
+#define DO_LOOP_TEST_PRINT(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
+  DO_LOOP_TEST(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
+  PRINT_TEST_RESULTS(TESTNAME);
+
+#define fmul_loop_test(NAME, INPUT1, INPUT2) \
+  DO_LOOP_TEST(NAME##_loop, INPUT1, INPUT2, LOOP_ITERATIONS, \
+        "fldl (%%rbx);\n" \
+        "fldl (%%rdi);\n" \
+        , \
+        "fmul %%ST(1), %%ST(0);\n" \
+        "fmul %%ST(1), %%ST(0);\n" \
+        , \
+        "fstl (%%rbx);\n" \
+        "fcomp;\n" \
+        "fcomp;\n" \
+        );
+
+#define fmul_loop_test_print(NAME, INPUT1, INPUT2) \
+  fmul_loop_test(NAME, INPUT1, INPUT2) \
+  PRINT_TEST_RESULTS(NAME)
+
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+  fmul_loop_test(denorm, 7, 1e-310);
+
+  fmul_loop_test(integers, 3, 213);
+  PRINT_SUMMARY(integers)
+  fmul_loop_test(denorm, 3, 1e-310);
+  PRINT_SUMMARY(denorm)
+  fmul_loop_test(denorm, 7, 1e-310);
+  PRINT_SUMMARY(denorm)
+
+
+#define SSE_TEST_INTERNAL_LOOP(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
+  TEST(TESTNAME##_rep, INPUT1, INPUT2, SETUP, \
+      "mov $" #LOOP_ITER ", %%rax;\n" \
+      "jmp loop%=;" \
+      \
+      "top%=:" \
+      \
+      "loop%=:" \
+      "movsd %%xmm2, %%xmm0;\n" \
+      "movsd %%xmm3, %%xmm1;\n" \
+      LOOP_INTERNAL \
+      "dec %%rax;\n" \
+      "jnz top%=;\n" \
+      , \
+      EPILOGUE \
+      );
+
+#define DO_SSE_LOOP_TEST(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
+  REPEAT_TEST { \
+    SSE_TEST_INTERNAL_LOOP(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE); \
+    if (i >= 0) { test_results[i] = result; } \
+  }
+
+#define mulsd_loop_test(NAME, INPUT1, INPUT2) \
+  DO_SSE_LOOP_TEST(NAME##_loop, INPUT1, INPUT2, LOOP_ITERATIONS, \
+        "movsd (%%rbx), %%xmm2;\n" \
+        "movsd (%%rdi), %%xmm3;\n" \
+        , \
+        "mulsd %%xmm0, %%xmm1;\n" \
+        , \
+        "movsd %%xmm1, (%%rbx);\n" \
+        );
+
+#define mulsd_loop_test_print(NAME, INPUT1, INPUT2) \
+  mulsd_loop_test(NAME, INPUT1, INPUT2); \
+  PRINT_TEST_RESULTS(NAME);
+
+  mulsd_loop_test_print(base, 1, 0);
+  mulsd_loop_test_print(denorm, 1e-310, 0.1);
+  mulsd_loop_test_print(zero, 0.1, 0.1);
 
   /*DO_TEST_PRINT(integer_multiply,
       2, 4,
@@ -194,6 +316,8 @@ int main() {
       "fcomp;\n"
       );
       */
+
+
 
   //__asm volatile(
   //    "fldl (%%rbx);\n"
