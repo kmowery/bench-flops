@@ -58,7 +58,7 @@ double input2 = 0;
 { uint64_t s = 0; printf("" #TESTNAME ": ["); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; printf("%d (%.12g), ", tests[i], test_results[i]); } printf("] sum: %" PRIu64 "\n", s); }
 #endif
 #define PRINT_SUMMARY(TESTNAME) \
-{ uint64_t s = 0; printf("" #TESTNAME ": "); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; } printf(" sum: %" PRIu64 "\n", s); }
+{ uint64_t s = 0; printf("%-16s: ", #TESTNAME); for(int i = 0; i < NUM_TESTS; i++) { s += tests[i]; } printf(" sum: %" PRIu64 "\n", s); }
 
 #define DO_TEST(TESTNAME, INPUT1, INPUT2, SETUP, ASM, EPILOGUE) \
   REPEAT_TEST { \
