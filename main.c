@@ -230,6 +230,9 @@ int main() {
 #define fmul_loop_test_print(NAME, INPUT1, INPUT2) \
   fmul_loop_test(NAME, INPUT1, INPUT2) \
   PRINT_TEST_RESULTS(NAME)
+#define fmul_loop_test_summary(NAME, INPUT1, INPUT2) \
+  fmul_loop_test(NAME, INPUT1, INPUT2) \
+  PRINT_SUMMARY(NAME)
 
   fmul_loop_test(denorm, 7, 1e-310);
   fmul_loop_test(denorm, 7, 1e-310);
@@ -249,14 +252,10 @@ int main() {
   fmul_loop_test(denorm, 7, 1e-310);
   fmul_loop_test(denorm, 7, 1e-310);
 
-  fmul_loop_test(integers, 1, 0);
-  PRINT_SUMMARY(integers)
-  fmul_loop_test(denorm, 1e-310, 0.1);
-  PRINT_SUMMARY(denorm)
-  fmul_loop_test(denorm, 7, 1e-310);
-  PRINT_SUMMARY(denorm)
-  fmul_loop_test(zero, 0.1, 0.1);
-  PRINT_SUMMARY(denorm)
+  fmul_loop_test_summary(integers, 1, 0);
+  fmul_loop_test_summary(denorm, 1e-310, 0.1);
+  fmul_loop_test_summary(denorm, 7, 1e-310);
+  fmul_loop_test_summary(zero, 0.1, 0.1);
 
 
 #define SSE_TEST_INTERNAL_LOOP(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
@@ -295,13 +294,16 @@ int main() {
 #define mulsd_loop_test_print(NAME, INPUT1, INPUT2) \
   mulsd_loop_test(NAME, INPUT1, INPUT2); \
   PRINT_TEST_RESULTS(NAME);
+#define mulsd_loop_test_summary(NAME, INPUT1, INPUT2) \
+  mulsd_loop_test(NAME, INPUT1, INPUT2); \
+  PRINT_SUMMARY(NAME);
 
-  mulsd_loop_test(sse_base, 1, 0);
-  PRINT_SUMMARY(sse_base);
-  mulsd_loop_test(denorm, 1e-310, 0.1);
-  PRINT_SUMMARY(sse_denorm);
-  mulsd_loop_test(zero, 0.1, 0.1);
-  PRINT_SUMMARY(sse_zero);
+  mulsd_loop_test_summary(sse_base, 1, 0);
+  mulsd_loop_test_summary(sse_two, 1, 2);
+  mulsd_loop_test_summary(sse_hard, 5.4, 6.7);
+  mulsd_loop_test_summary(sse_large, 1e50, 5.3);
+  mulsd_loop_test_summary(denorm, 1e-310, 0.1);
+  mulsd_loop_test_summary(zero, 0.1, 0.1);
 
   /*DO_TEST_PRINT(integer_multiply,
       2, 4,
