@@ -249,11 +249,13 @@ int main() {
   fmul_loop_test(denorm, 7, 1e-310);
   fmul_loop_test(denorm, 7, 1e-310);
 
-  fmul_loop_test(integers, 3, 213);
+  fmul_loop_test(integers, 1, 0);
   PRINT_SUMMARY(integers)
-  fmul_loop_test(denorm, 3, 1e-310);
+  fmul_loop_test(denorm, 1e-310, 0.1);
   PRINT_SUMMARY(denorm)
   fmul_loop_test(denorm, 7, 1e-310);
+  PRINT_SUMMARY(denorm)
+  fmul_loop_test(zero, 0.1, 0.1);
   PRINT_SUMMARY(denorm)
 
 
@@ -294,9 +296,12 @@ int main() {
   mulsd_loop_test(NAME, INPUT1, INPUT2); \
   PRINT_TEST_RESULTS(NAME);
 
-  mulsd_loop_test_print(base, 1, 0);
-  mulsd_loop_test_print(denorm, 1e-310, 0.1);
-  mulsd_loop_test_print(zero, 0.1, 0.1);
+  mulsd_loop_test(sse_base, 1, 0);
+  PRINT_SUMMARY(sse_base);
+  mulsd_loop_test(denorm, 1e-310, 0.1);
+  PRINT_SUMMARY(sse_denorm);
+  mulsd_loop_test(zero, 0.1, 0.1);
+  PRINT_SUMMARY(sse_zero);
 
   /*DO_TEST_PRINT(integer_multiply,
       2, 4,
