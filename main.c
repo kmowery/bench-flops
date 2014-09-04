@@ -15,7 +15,7 @@
 #define DUP6(X) DUP3(X) DUP3(X)
 #define DUP7(X) DUP4(X) DUP3(X)
 
-#define TIME_BEGIN "rdtscp; \nmov%%rax, %%rsi\n"
+#define TIME_BEGIN "rdtscp; \nmov %%rax, %%rsi\n"
 #define TIME_END "rdtscp; \nsub %%esi, %%eax\n"
 
 #define NUM_TESTS 40
@@ -46,7 +46,7 @@ double input2 = 0;
     EPILOGUE \
     : "=a" (tests[i]) \
     : "b" (&result), "D" (&input2) \
-    : "%rax", "%rcx", "%rdx", "%rsi", "memory" );
+    : "rcx", "rdx", "rsi", "memory" );
 
 #define REPEAT_TEST for(int i = -1; i < NUM_TESTS; i++)
 
