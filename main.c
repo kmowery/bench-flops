@@ -220,7 +220,7 @@ int main() {
         "fldl (%%rdi);\n" \
         , \
         "fmul %%ST(1), %%ST(0);\n" \
-        "fmul %%ST(1), %%ST(0);\n" \
+        "fstl (%%rbx);\n" \
         , \
         "fstl (%%rbx);\n" \
         "fcomp;\n" \
@@ -256,6 +256,7 @@ int main() {
   fmul_loop_test_summary(denorm, 1e-310, 0.1);
   fmul_loop_test_summary(denorm, 7, 1e-310);
   fmul_loop_test_summary(zero, 0.1, 0.1);
+  fmul_loop_test_summary(two, 7, 2);
 
 
 #define SSE_TEST_INTERNAL_LOOP(TESTNAME, INPUT1, INPUT2, LOOP_ITER, SETUP, LOOP_INTERNAL, EPILOGUE) \
